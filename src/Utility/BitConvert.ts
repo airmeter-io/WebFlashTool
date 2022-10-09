@@ -12,6 +12,16 @@ const toIntBytes = (pValue: number, pDest : Uint8Array, pOffset : number) => {
         pDest[pOffset+3] =  (pValue >> 24) & 0xFF;
     };
 
+const toInt16 = (src : Uint8Array, startIndex : number) => {        
+        return src[startIndex + 1] << 8
+            | src[startIndex];
+    };
+
+const toInt16Bytes = (pValue: number, pDest : Uint8Array, pOffset : number) => { 
+        pDest[pOffset] =  pValue & 0xFF;
+        pDest[pOffset+1] =  (pValue >> 8) & 0xFF;        
+    };
+
 const toHex = (bytes: number[] | Uint8Array) => {
         if (!Array.isArray(bytes) && !ArrayBuffer.isView(bytes)) {
                 throw new TypeError(
@@ -40,4 +50,11 @@ const compareBytes = (pLeft : Uint8Array, pRight : Uint8Array) => {
       return ((pRight.length >= pLeft.length) && pLeft.every((value, index) => value === pRight[index]));
 }
 
-export { toInt, toHex, toIntBytes, fromHex, fromHexToDest, compareBytes };
+const appendByteArray = (pLeft : Uint8Array,pRight : Uint8Array) => {
+        var result = new Uint8Array(pLeft.byteLength + pRight.byteLength);
+        result.set(new Uint8Array(pLeft), 0);
+        result.set(new Uint8Array(pRight), pLeft.byteLength);
+        return result.buffer;
+}
+
+export { toInt, toHex, toIntBytes, fromHex, fromHexToDest, compareBytes, toInt16, toInt16Bytes, appendByteArray };

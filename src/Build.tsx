@@ -1,7 +1,7 @@
 import './App.css';
 
 import React from 'react';
-import {BuildManager, IPartitionResult} from './Business/BuildManager.ts'
+import {BuildManager, BuildData, IPartitionResult} from './Business/BuildManager.ts'
 import {SuccessMessage} from './Messages/Success.tsx'
 import {WarningMessage} from './Messages/Warning.tsx'
 import {ErrorMessage} from './Messages/Error.tsx'
@@ -9,6 +9,7 @@ import { Connect, IConnectionChangeInfo} from './Connect.tsx'
 import { PartitionTable  } from './Business/PartitionTable.ts';
 import { BoardManager } from './Business/BoardManager.ts';
 import { BuildPartitions } from './BuildPartitions.tsx';
+import { SpiffsFile, SpiffsFsReader, SpiffsFsWriter, ISpiffsConfig } from './Business/SpiffsFs.ts'
 
 interface IBuildProps {
     Build : BuildManager;
@@ -23,6 +24,7 @@ interface IBuildState {
   currentPartitionTable : PartitionTable | null ;
   buildPartition : IPartitionResult | null;
   buildPartitionTable : PartitionTable | null;
+  durl : string ;
 }
 
 class Build extends React.Component<IBuildProps, IBuildState> {
@@ -55,6 +57,42 @@ class Build extends React.Component<IBuildProps, IBuildState> {
     await new Promise(resolve => setTimeout(()=>resolve(), ms)).then(()=>console.log("fired"));
 }
 
+  async warpSpiffs(pBuild : BuildData) {
+    var file = pBuild.getBuildFile("dev.bin");
+
+
+    var dat = new Uint8Array(file.data);
+    var spiffsConfig : ISpiffsConfig = {
+      blockSize: 4096,
+      pageSize: 256,
+      objectNameLength: 32, 
+      metaLength: 4, 
+      useMagicLength : true
+    };
+    var rea= new SpiffsFsReader(spiffsConfig);
+    var files2 = rea.getFiles(dat);
+    files2.forEach(pFile => {
+      console.log(pFile.Name);
+      if(pFile.Name.endsWith("bundle.js.gz")) {
+        var p = new TextDecoder().decode(pFile.Data);
+        console.log(p);
+        // const blob = new Blob( [ pFile.Data ], { type: 'application/octet-stream' } );	
+        // const objectURL = URL.createObjectURL( blob );
+        // this.setState({ 
+        //   durl: objectURL
+        // });    
+      }                  
+    });
+
+    var writer = new SpiffsFsWriter(spiffsConfig);
+    writer.writeFiles(dat, files2);
+    const blob = new Blob( [ dat ], { type: 'application/octet-stream' } );	
+    const objectURL = URL.createObjectURL( blob );
+    this.setState({ 
+      durl: objectURL
+    });      
+  }
+
   async startDownload() {
     
     if(!this._hasDownloaded) {
@@ -63,6 +101,8 @@ class Build extends React.Component<IBuildProps, IBuildState> {
       await this.delay(250);      
       try {
         await this.props.Build.download(this.update.bind(this));
+
+        await this.warpSpiffs(this.props.Build.Data);
       } catch(exception) {
         this.failed("Failed to download build");
         return;
@@ -80,6 +120,7 @@ class Build extends React.Component<IBuildProps, IBuildState> {
         //   0x7000,
         //   donePercent=> {});
         buildPartition =  this.props.Build.Data.getPartition(board.PartitionTableOffset);
+
         this.setState({ buildPartition: buildPartition, buildPartitionTable: new PartitionTable(buildPartition.File.data)});
         
        
@@ -134,7 +175,9 @@ class Build extends React.Component<IBuildProps, IBuildState> {
       if(!this.state.requiresClean) {
         return (
           <div>
+            <a href={this.state.durl}>Download warped</a>
             <BuildPartitions Build={this.props.Build} Connection={this.props.Connection} PartitionTable={this.state.buildPartitionTable}/>
+
           </div>
         );
       } else {

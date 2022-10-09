@@ -208,6 +208,7 @@ class BuildManager {
                 name: name,
                 data: await file.async("uint8array")
               });
+              
             }
         }
         this._data = new BuildData(
