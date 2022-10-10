@@ -42,10 +42,14 @@ class ESP32Board extends Board {
     }
 }
 
+
+
 class BoardManager {
+    
     private _boards : Board[] = [
         new ESP32Board("ESP32-D0WDQ6-V3 (revision 3)",["AirMeter.io-binary-esp32-"]),
-        new ESP32Board("ESP32-D0WDQ6 (revision 1)",["AirMeter.io-binary-esp32-"])];
+        new ESP32Board("ESP32-D0WDQ6 (revision 1)",["AirMeter.io-binary-esp32-"])
+    ];
 
     isBoardSupported(pConnection : IConnectionInfo) : boolean {
         for(var i = 0; i < this._boards.length;i++)
@@ -63,4 +67,8 @@ class BoardManager {
     }
 }
 
-export {BoardManager, Board, ESP32Board};
+export {
+    BoardManager, 
+    Board, 
+    ESP32Board
+};

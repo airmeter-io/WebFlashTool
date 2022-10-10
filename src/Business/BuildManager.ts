@@ -64,6 +64,12 @@ class BuildData {
 
       throw Error("Not Found");
    }
+
+   get Files() { return this._files; }
+
+   withFilesReplaced( pFiles: IBuildFile[]) {
+      return new BuildData(this._zip, pFiles, this._readme, this._license, this._manifest);
+   }
 }
 
 

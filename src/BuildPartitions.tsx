@@ -17,6 +17,7 @@ interface IBuildPartitionsProps {
     Build : BuildManager;
     Connection : IConnectionChangeInfo | null;
     PartitionTable : PartitionTable;
+    OnEraseDevice: ()=>void;
 }
 
 enum BuildPartitionStage { Read, View, Flashing, Up2Date };
@@ -82,16 +83,16 @@ async handleFlash() {
        await ref.current.updateForFlash();
      }
   }
-
+  var needsFlash = false;
   for(var i =0; i <this.props.Build.Data.Manifest.builds[0].parts.length;i++)  {
     var ref =this.getRef(this.props.Build.Data.Manifest.builds[0].parts[i]);
     if(ref!==undefined && ref.current!==null) {
-      await ref.current.flash();
+      if(!await ref.current.flash())
+        needsFlash = true;
     }
  }
 
-  this.setState(  { hideAllButtons: false});
-
+ this.setState(  { displayFlashButton: needsFlash, hideAllButtons: false, stage: needsFlash? BuildPartitionStage.View: BuildPartitionStage.Up2Date });
 }
 
 async delay(ms: number) {
@@ -138,13 +139,21 @@ async delay(ms: number) {
       case BuildPartitionStage.Flashing : 
         return (<WarningMessage Title="Flashing flash" Message="The device is being flashed. Please wait."/>);
       case BuildPartitionStage.Up2Date : 
-        return (<WarningMessage Title="Up to date" Message="This device is up to date."/>);
+        return (<SuccessMessage Title="Up to date" Message="This device is up to date."/>);
 
       }
 
   }
 
+  eraseDevice(event) {
+    event.preventDefault();
+     this.props.OnEraseDevice();
+  }
 
+  configDevice(event) {
+    event.preventDefault();
+
+  }
 
   render() {
     return [
@@ -168,14 +177,17 @@ async delay(ms: number) {
                           PartitionTable={this.props.PartitionTable}
                           Stage={this.state?.stage }
                           BuildPart={item}
-                          BuildFile={this.props.Build.Data.getBuildFile(item.path)}/>)
+                          BuildFile={this.props.Connection.device.Profile.applyToBuildFile(this.props.Build, this.props.Build.Data.getBuildFile(item.path))}/>)
          }
          
         </tbody>
       </table>),
       (this.state === null || this.state.hideAllButtons ? (<div className="flashActions"></div>) : (this.state.displayFlashButton ? 
-        <div className="flashActions"><div className="secondaryBtn">Erase All</div><div onClick={this.handleFlash.bind(this)} className="primaryBtn">Flash</div></div> : 
-        <div className="flashActions"><div className="secondaryBtn">Erase All</div></div>))];     
+        <div className="flashActions"><div className="secondaryBtn" onClick={this.eraseDevice.bind(this)}>Erase All</div><div onClick={this.handleFlash.bind(this)} className="primaryBtn">Flash</div></div> : 
+        <div className="flashActions">
+          <div className="primaryBtn" onClick={this.configDevice.bind(this)}>Configure</div>
+          <div className="secondaryBtn" onClick={this.eraseDevice.bind(this)}>Erase All</div>
+          </div>))];     
   }
 }
 

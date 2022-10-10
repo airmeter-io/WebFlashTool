@@ -13,6 +13,7 @@ interface IConnectionInfo {
    freq : number;
    flashId : number;
    flashSize : number;
+   mac : string;
 }
 
 
@@ -28,34 +29,6 @@ class ConnectionManager {
         this._connected = false;
     }
 
-    // async readFlash(pAddr : number, pLength : number, pUpdate : (number) => void) {
-    //     var remaining = pLength;
-    //     var addr = pAddr;
-    //     pUpdate(0);
-    //     var result = new Uint8Array();
-    //     while(remaining>0) {
-    //        if(remaining>4096) {
-    //           const res = await this.readFlashInternal(addr, 4096);
-    //           result = this._esploader._appendArray(result, res);
-    //           remaining -= result.length;
-    //           addr+=result.length;
-    //           pUpdate((result.length/pLength)*100);
-    //           await this._esploader._sleep(50);
-    //        } else {
-    //         const res = await this.readFlashInternal(addr,remaining);
-    //         result = this._esploader._appendArray(result, res);
-    //         remaining = 0;
-    //         pUpdate((result.length/pLength)*100);
-    //         await this._esploader._sleep(50);
-    //        }
-    //     }
-    //     pUpdate(100);
-       
-    //     return result;
-    // }
-
-
- 
     async writeFlash(pData : Uint8Array, pAddress : number, pReportProgress : (number)=>void) {
       const toBinString = async (bytes : Uint8Array) =>{
          var blob  = new Blob([bytes]);
@@ -80,15 +53,14 @@ class ConnectionManager {
         },
         calculateMD5Hash: (image) => {
           return CryptoES.MD5(CryptoES.enc.Latin1.parse(image));
-          // var bytes : Uint8Array  = image.split(",");;
-         
-          // var md5 = new Md5();
-          // md5.appendByteArray(bytes);                
-          // var md5Hash : string = md5.end()?.toString();
-          // return md5Hash;
         }
     });
     } 
+
+    async eraseFullFlash() {
+      await this._esploader.erase_flash();
+    }
+
     async readFlash(pAddr : number, pLength : number, pUpdateProgress : (number)=>void) {
       var ESP_READ_REG = 0xd2;
       var val, data;
@@ -219,7 +191,8 @@ class ConnectionManager {
             features: features,
             freq: freq,
             flashId: flashId,
-            flashSize: flashSize
+            flashSize: flashSize,
+            mac: mac
           };
         } catch(exception) {
           

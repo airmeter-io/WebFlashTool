@@ -10,10 +10,13 @@ import { Terminal } from 'xterm'
 import {IAction, ActionPlacement} from './App.tsx';
 import { BuildManager } from './Business/BuildManager.ts';
 import { inflateInfo } from 'pako/lib/zlib/inflate';
+import { getReadableFileSizeString } from './Utility/BitConvert.ts';
+import { DeviceManager, DevicesManager } from './Business/DevicesManager.ts';
 
 interface IConnectionChangeInfo {
   info : IConnectionInfo | null;
   connection : ConnectionManager | null;
+  device : DeviceManager | null;
 }
 
 interface IConnectProps {
@@ -30,8 +33,9 @@ interface IConnectState {
 
 class Connect extends React.Component<IConnectProps, IConnectState> {
   private _actions : IAction[];
+  private _devicesManger : DevicesManager|null = null;
   logoRef : React.RefObject<any>
-
+  
   constructor(props) {
     super(props);
    
@@ -40,6 +44,10 @@ class Connect extends React.Component<IConnectProps, IConnectState> {
   }
 
   async handleConnect() {
+    if(this._devicesManger==null)
+      this._devicesManger = new DevicesManager();
+    await this._devicesManger.startup();
+
     if(this.state.connection == null) {
       var connection = new ConnectionManager(this.props.Terminal);      
       this.setState({ 
@@ -57,7 +65,7 @@ class Connect extends React.Component<IConnectProps, IConnectState> {
             connectionInfo: null,
             connection: null
           });
-          this.props.OnConnectionChanged({ info: null, connection: null });
+          this.props.OnConnectionChanged({ info: null, connection: null, device: null });
         }
         else {
           
@@ -69,7 +77,7 @@ class Connect extends React.Component<IConnectProps, IConnectState> {
       
          
 
-          this.props.OnConnectionChanged({ info: connectionInfo, connection: connection });
+          this.props.OnConnectionChanged({ info: connectionInfo, connection: connection, device: await this._devicesManger.getOrCreateDevice(connectionInfo) });
         }
       } catch (Exception) {
         this.setState({ 
@@ -78,7 +86,7 @@ class Connect extends React.Component<IConnectProps, IConnectState> {
           connectionInfo: null,
           connection: null
         });
-        this.props.OnConnectionChanged({ info: null, connection: null });
+        this.props.OnConnectionChanged({ info: null, connection: null, device : null });
       }
     } else {
       await this.state.connection.disconnect();
@@ -88,7 +96,7 @@ class Connect extends React.Component<IConnectProps, IConnectState> {
         connectionInfo: null,
         connection: null
       });
-      this.props.OnConnectionChanged({ info: null, connection: null });
+      this.props.OnConnectionChanged({ info: null, connection: null, device: null });
     }
     
   }
@@ -116,7 +124,7 @@ class Connect extends React.Component<IConnectProps, IConnectState> {
         <div>
             <div className='btn' onClick={this.handleConnect.bind(this)}>Disconnect</div>       
             <div>Chip: <strong>{ this.state.connectionInfo==null ? "Unknown" : this.state.connectionInfo.chipShort }</strong></div>     
-            <div>Flash Size: <strong>{ this.state.connectionInfo==null ? "Unknown" : this.state.connectionInfo.flashSize }</strong></div>                 
+            <div>Flash Size: <strong>{ this.state.connectionInfo==null ? "Unknown" : getReadableFileSizeString(this.state.connectionInfo.flashSize) }</strong></div>                 
         </div>
       );  
     }

@@ -6,7 +6,7 @@ import { Connect, IConnectionChangeInfo} from './Connect.tsx'
 import { PartitionTable  } from './Business/PartitionTable.ts';
 import { BoardManager } from './Business/BoardManager.ts';
 import { BuildPartitionStage } from './BuildPartitions.tsx';
-import { compareBytes } from './Utility/BitConvert.ts';
+import { compareBytes, getReadableFileSizeString } from './Utility/BitConvert.ts';
 import { BuildPartitionProgress } from './BuildPartitionProgress.tsx';
 import { idText, isThisTypeNode, textChangeRangeIsUnchanged } from 'typescript';
 import { Md5 } from 'ts-md5';
@@ -47,6 +47,9 @@ class BuildPartition extends React.Component<IBuildPartitionProps, IBuildPartiti
    
   }
 
+  isOta() {
+    return this.props.BuildPart.path=== "ota_data_initial.bin";
+  }
 
 
   async donePercent(pDone : number) {
@@ -67,7 +70,7 @@ class BuildPartition extends React.Component<IBuildPartitionProps, IBuildPartiti
     } else 
     {
       this.setState( { step: BuildPartitionStep.NeedsFlash});
-      return false;
+      return  this.isOta();
     }
   }
 
@@ -84,8 +87,9 @@ class BuildPartition extends React.Component<IBuildPartitionProps, IBuildPartiti
        this.props.BuildFile.data, this.props.BuildPart.offset,
         (pDone) => this.setState({ done: pDone }));
 
-      await this.downloadAndProcess();
+      return await this.downloadAndProcess();
     }
+    return true;
   }
   
   async componentDidUpdate(prevProps) {
@@ -109,16 +113,7 @@ class BuildPartition extends React.Component<IBuildPartitionProps, IBuildPartiti
   }
 
 
-  getReadableFileSizeString(fileSizeInBytes) {
-    var i = -1;
-    var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
-    do {
-      fileSizeInBytes /= 1024;
-      i++;
-    } while (fileSizeInBytes > 1024);
   
-    return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
-  }
   async componentWillUnmount () {
     
   }
@@ -149,6 +144,7 @@ class BuildPartition extends React.Component<IBuildPartitionProps, IBuildPartiti
             </td>
           );
       case BuildPartitionStep.NeedsFlash :
+        if(!this.isOta())
         return (
             <td className="partitionStatus" >
               Flash required <svg className="partitionStatusImg" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -157,6 +153,14 @@ class BuildPartition extends React.Component<IBuildPartitionProps, IBuildPartiti
               </svg>
 
             </td>);      
+          else
+            return (
+              <td className="partitionStatus">
+              Flash Always  <svg className="partitionStatusImg"  viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10.612 15.921L7.11133 12.421L8.32429 11.2086L10.612 13.4963L15.6868 8.42578L16.8998 9.63816L10.612 15.921Z" fill="#599455"/>
+    <path d="M12.0048 22C6.4888 22 2 17.5143 2 12C2 6.48571 6.4888 2 12.0048 2C17.5217 2 22.0095 6.48571 22.0095 12C22.0095 17.5143 17.5217 22 12.0048 22ZM12.0048 3.71429C7.43306 3.71429 3.7151 7.43048 3.7151 12C3.7151 16.5695 7.43306 20.2857 12.0048 20.2857C16.5765 20.2857 20.2944 16.5695 20.2944 12C20.2944 7.43048 16.5765 3.71429 12.0048 3.71429V3.71429Z" fill="#599455"/>
+    </svg>
+            </td>);
       case BuildPartitionStep.PendingFlash :
         return (          
             <td className="partitionStatus">
@@ -191,7 +195,7 @@ class BuildPartition extends React.Component<IBuildPartitionProps, IBuildPartiti
           0x{this.props.BuildPart.offset.toString(16)}
         </td>
         <td className="partitionSize">
-          {this.getReadableFileSizeString(this.props.BuildFile.data.length)} 
+          {getReadableFileSizeString(this.props.BuildFile.data.length)} 
         </td>
         {this.renderStatus()}
       </tr>);   
