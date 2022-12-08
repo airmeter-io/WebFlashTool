@@ -11,12 +11,14 @@ class DeviceProfile {
     private _name : string;
     private _description : string;
     private _compatibleChipsetIds : string[];
+    private _setDeviceConfig : (any)=>void;
 
-    constructor(pCode : string, pName : string, pDescription : string, pCompitbleChipsetIds : string[]) {   
+    constructor(pCode : string, pName : string, pDescription : string, pCompitbleChipsetIds : string[], pSetDeviceConfig : (any)=>void) {   
        this._code = pCode;
        this._name = pName;
        this._description = pDescription;
        this._compatibleChipsetIds = pCompitbleChipsetIds;
+       this._setDeviceConfig = pSetDeviceConfig;
     }
 
     get Code() { return this._code; }
@@ -53,8 +55,9 @@ class DeviceProfile {
         var devicesJson : any = {
             profile: this._code,
             version: pBuildManager.Release.name,
-            asset: pBuildManager.Asset.name
+            asset: pBuildManager.Asset.name,
         }
+        this._setDeviceConfig(devicesJson);
 
         var json = JSON.stringify(devicesJson);
 

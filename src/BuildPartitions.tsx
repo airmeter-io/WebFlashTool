@@ -10,6 +10,7 @@ import { IManifestBuildPart } from './Business/BuildManager';
 import {SuccessMessage} from './Messages/Success.tsx'
 import {WarningMessage} from './Messages/Warning.tsx'
 import {ErrorMessage} from './Messages/Error.tsx'
+import { buildQueries } from '@testing-library/react';
 
 
 
@@ -156,6 +157,9 @@ async delay(ms: number) {
   }
 
   render() {
+    if(this.props.Build.Data === undefined) 
+      return [(this.getStageMessage())];
+
     return [
       (this.getStageMessage()),                 
       (
